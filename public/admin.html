@@ -1,41 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Admin Chat</title>
   <script src="firebase.js" type="module"></script>
   <script type="module">
-    import { push, onChildAdded, ref } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+    import {
+      ref, onChildAdded, onValue, push
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
     const db = window.firebaseDB;
-    const chatRef = ref(db, 'livechat');
-    const messages = document.getElementById("messages");
+    const usersRef = ref(db, 'livechat');
 
-    onChildAdded(chatRef, (data) => {
-      const msg = data.val();
-      const div = document.createElement("div");
-      div.className = "mb-2";
-      div.innerHTML = `<b>${msg.sender}:</b> ${msg.text}`;
-      messages.appendChild(div);
-      messages.scrollTop = messages.scrollHeight;
+    const userList = document.getElementById("userList");
+    const messages = document.getElementById("messages");
+    let currentUserId = null;
+
+    // Ambil daftar user
+    onValue(usersRef, (snapshot) => {
+      userList.innerHTML = "";
+      snapshot.forEach((userSnap) => {
+        const messages = userSnap.val();
+        const lastMsg = Object.values(messages).pop();
+        const name = lastMsg.name || "Tanpa Nama";
+        const email = lastMsg.email || "-";
+        const btn = document.createElement("button");
+        btn.textContent = `${name} (${email})`;
+        btn.className = "block w-full text-left px-3 py-2 hover:bg-gray-100 border-b";
+        btn.onclick = () => loadChat(userSnap.key, name);
+        userList.appendChild(btn);
+      });
     });
+
+    function loadChat(userId, userName) {
+      currentUserId = userId;
+      messages.innerHTML = "";
+      const chatRef = ref(db, 'livechat/' + userId);
+      onValue(chatRef, (snapshot) => {
+        messages.innerHTML = "";
+        snapshot.forEach((msgSnap) => {
+          const msg = msgSnap.val();
+          const div = document.createElement("div");
+          div.className = "mb-2";
+          div.innerHTML = `<b>${msg.sender}:</b> ${msg.text}`;
+          messages.appendChild(div);
+        });
+      });
+      document.getElementById("selectedUser").textContent = "Chat dengan: " + userName;
+    }
 
     document.getElementById("form").addEventListener("submit", e => {
       e.preventDefault();
-      const text = document.getElementById("msg").value;
-      if (!text) return;
-      push(chatRef, { sender: "CS", text });
+      const text = document.getElementById("msg").value.trim();
+      if (!text || !currentUserId) return;
+      const chatRef = ref(db, 'livechat/' + currentUserId);
+      push(chatRef, {
+        sender: "CS",
+        text
+      });
       document.getElementById("msg").value = "";
     });
   </script>
+
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="bg-white p-4">
-  <h1 class="text-lg font-bold mb-4">Live Chat Admin || XO MARKET</h1>
-  <div id="messages" class="border p-3 h-64 overflow-y-scroll mb-4 bg-gray-50 rounded"></div>
-  <form id="form" class="flex gap-2">
-    <input type="text" id="msg" placeholder="Balas pesan..." class="flex-1 border p-2 rounded">
-    <button type="submit" class="bg-green-600 text-white px-4 rounded">Kirim</button>
-  </form>
+<body class="bg-white text-sm">
+  <div class="flex h-screen">
+    <!-- Sidebar User -->
+    <div class="w-1/3 border-r p-4 overflow-y-auto">
+      <h2 class="font-bold mb-3">📧 Daftar User</h2>
+      <div id="userList" class="space-y-1"></div>
+    </div>
+
+    <!-- Chat Box -->
+    <div class="flex-1 p-4 flex flex-col">
+      <h2 id="selectedUser" class="font-bold text-lg mb-3">Pilih user</h2>
+      <div id="messages" class="flex-1 border p-3 rounded overflow-y-auto bg-gray-50 mb-4"></div>
+      <form id="form" class="flex gap-2">
+        <input type="text" id="msg" class="flex-1 border p-2 rounded" placeholder="Tulis pesan..." />
+        <button type="submit" class="bg-green-600 text-white px-4 rounded">Kirim</button>
+      </form>
+    </div>
+  </div>
 </body>
 </html>
