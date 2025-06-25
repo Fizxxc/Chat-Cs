@@ -9,7 +9,7 @@
             "destination": "/public/admin.html"
         },
         {
-            "source": "chat",
+            "source": "/chat",
             "destination": "/public/chat.html"
         }
     ]
