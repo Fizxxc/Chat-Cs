@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Chat</title>
+  <script src="firebase.js" type="module"></script>
+  <script type="module">
+    import { push, onChildAdded, ref } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
+    const db = window.firebaseDB;
+    const chatRef = ref(db, 'livechat');
+    const messages = document.getElementById("messages");
+
+    onChildAdded(chatRef, (data) => {
+      const msg = data.val();
+      const div = document.createElement("div");
+      div.className = "mb-2";
+      div.innerHTML = `<b>${msg.sender}:</b> ${msg.text}`;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    });
+
+    document.getElementById("form").addEventListener("submit", e => {
+      e.preventDefault();
+      const text = document.getElementById("msg").value;
+      if (!text) return;
+      push(chatRef, { sender: "CS", text });
+      document.getElementById("msg").value = "";
+    });
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-white p-4">
+  <h1 class="text-lg font-bold mb-4">Live Chat Admin || XO MARKET</h1>
+  <div id="messages" class="border p-3 h-64 overflow-y-scroll mb-4 bg-gray-50 rounded"></div>
+  <form id="form" class="flex gap-2">
+    <input type="text" id="msg" placeholder="Balas pesan..." class="flex-1 border p-2 rounded">
+    <button type="submit" class="bg-green-600 text-white px-4 rounded">Kirim</button>
+  </form>
+</body>
+</html>
